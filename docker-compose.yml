@@ -1,0 +1,67 @@
+version: '3'
+services:
+
+######################################################
+# DATABASE SERVICE
+######################################################
+  postgres:
+        image: postgres:14.7
+        container_name: postgres
+        restart: always
+        ports:
+          - "54320:5432"
+        environment:
+          - POSTGRES_USER=airflow
+          - POSTGRES_PASSWORD=airflow
+          - POSTGRES_DB=airflow
+        volumes:
+          - local_pgdata:/var/lib/postgresql/data
+        networks:
+          - postgres
+  pgadmin:
+        image: dpage/pgadmin4
+        container_name: pgadmin4
+        restart: always
+        ports:
+          - "5050:80"
+        environment:
+          PGADMIN_DEFAULT_EMAIL: mutwirifranco@gmail.com
+          PGADMIN_DEFAULT_PASSWORD: admin
+        volumes:
+          - pgadmin-data:/var/lib/pgadmin
+        networks:
+          - postgres
+
+  # scheduler:
+  #       image: apache/airflow
+  #       command: scheduler
+  #       restart: always
+  #       depends_on:
+  #           - postgres
+  #       env_file:
+  #           - .env
+  #       volumes:
+  #           - ./dags:/opt/airflow/dags
+
+  webserver:
+        build: .
+        restart: always
+        container_name: webserver
+        volumes:
+          - ./airflow.cfg:/opt/airflow/airflow.cfg
+          - ./dags:/opt/airflow/dags
+        ports:
+          - 8080:8080
+        healthcheck:
+          test: [ "CMD", "nc", "-z", "airflow", "8080" ]
+          timeout: 45s
+          interval: 10s
+          retries: 10
+volumes:
+  local_pgdata:
+  pgadmin-data:
+
+networks:
+  postgres:
+    driver: bridge
+ 
